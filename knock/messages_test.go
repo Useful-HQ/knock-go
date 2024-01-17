@@ -16,7 +16,10 @@ func TestMessages_List(t *testing.T) {
 
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(200)
-		out := `{"items":[{"__cursor":"big-cursor","__typename":"Message","archived_at":null,"channel_id":"5da042d7-02ee-46ed-8b91-9b5717da2028","data":{"middle-name":"alfred","welcome":"to jurassic park"},"id":"message-id","inserted_at":"2022-05-17T00:34:18.277163Z","read_at":null,"recipient":"tom","seen_at":null,"source":{"__typename":"NotificationSource","key":"test","version_id":"4dae021a-ba51-473f-9038-77041da8131c"},"status":"delivered","tenant":null,"updated_at":"2022-05-17T00:34:18.318283Z","workflow":"test"}],"page_info":{"__typename":"PageInfo","after":"big-after","before":null,"page_size":1}}`
+		out := `{"items":[
+			{"__cursor":"big-cursor","__typename":"Message","archived_at":null,"channel_id":"5da042d7-02ee-46ed-8b91-9b5717da2028","data":{"middle-name":"alfred","welcome":"to jurassic park"},"id":"message-id","inserted_at":"2022-05-17T00:34:18.277163Z","read_at":null,"recipient":"tom","seen_at":null,"source":{"__typename":"NotificationSource","key":"test","version_id":"4dae021a-ba51-473f-9038-77041da8131c"},"status":"delivered","tenant":null,"updated_at":"2022-05-17T00:34:18.318283Z","workflow":"test"},
+			{"__cursor":"big-cursor2","__typename":"Message","archived_at":null,"channel_id":"5da042d7-02ee-46ed-8b91-9b5717da2028","data":{"middle-name":"alfred","welcome":"to jurassic park"},"id":"message-id2","inserted_at":"2022-05-17T00:34:18.277163Z","read_at":null,"recipient":{"id":"tom10","collection":"toms"},"seen_at":null,"source":{"__typename":"NotificationSource","key":"test","version_id":"4dae021a-ba51-473f-9038-77041da8131c"},"status":"delivered","tenant":null,"updated_at":"2022-05-17T00:34:18.318283Z","workflow":"test"}
+			],"page_info":{"__typename":"PageInfo","after":"big-after","before":null,"page_size":1}}`
 		_, err := w.Write([]byte(out))
 		c.Assert(err, qt.IsNil)
 	}))
@@ -37,10 +40,39 @@ func TestMessages_List(t *testing.T) {
 	wantMessages :=
 		[]*Message{
 			{
-				Cursor:     "big-cursor",
-				ID:         "message-id",
-				ChannelID:  "5da042d7-02ee-46ed-8b91-9b5717da2028",
-				Recipient:  "tom",
+				Cursor:    "big-cursor",
+				ID:        "message-id",
+				ChannelID: "5da042d7-02ee-46ed-8b91-9b5717da2028",
+				Recipient: RecipientIdentifier{
+					Id:   "tom",
+					Type: RecipientTypeUser,
+				},
+				Workflow:   "test",
+				Tenant:     "",
+				Status:     "delivered",
+				ReadAt:     time.Time{},
+				SeenAt:     time.Time{},
+				ArchivedAt: time.Time{},
+				InsertedAt: time.Date(2022, time.May, 17, 00, 34, 18, 277163000, time.UTC),
+				UpdatedAt:  time.Date(2022, time.May, 17, 00, 34, 18, 318283000, time.UTC),
+				Source: &NotificationSource{
+					Key:       "test",
+					VersionID: "4dae021a-ba51-473f-9038-77041da8131c",
+				},
+				Data: map[string]interface{}{
+					"middle-name": "alfred",
+					"welcome":     "to jurassic park",
+				},
+			},
+			{
+				Cursor:    "big-cursor2",
+				ID:        "message-id2",
+				ChannelID: "5da042d7-02ee-46ed-8b91-9b5717da2028",
+				Recipient: RecipientIdentifier{
+					Id:         "tom10",
+					Collection: "toms",
+					Type:       RecipientTypeObject,
+				},
 				Workflow:   "test",
 				Tenant:     "",
 				Status:     "delivered",
@@ -94,10 +126,13 @@ func TestMessages_Get(t *testing.T) {
 	}
 
 	want := &Message{
-		Cursor:     "",
-		ID:         "long-id",
-		ChannelID:  "5da042d7-02ee-46ed-8b91-9b5717da2028",
-		Recipient:  "tom",
+		Cursor:    "",
+		ID:        "long-id",
+		ChannelID: "5da042d7-02ee-46ed-8b91-9b5717da2028",
+		Recipient: RecipientIdentifier{
+			Id:   "tom",
+			Type: RecipientTypeUser,
+		},
 		Workflow:   "test",
 		Tenant:     "",
 		Status:     "delivered",
@@ -287,10 +322,13 @@ func TestMessages_SetStatus(t *testing.T) {
 	}
 
 	want := &Message{
-		Cursor:     "big-cursor",
-		ID:         "message-id",
-		ChannelID:  "5da042d7-02ee-46ed-8b91-9b5717da2028",
-		Recipient:  "tom",
+		Cursor:    "big-cursor",
+		ID:        "message-id",
+		ChannelID: "5da042d7-02ee-46ed-8b91-9b5717da2028",
+		Recipient: RecipientIdentifier{
+			Id:   "tom",
+			Type: RecipientTypeUser,
+		},
 		Workflow:   "test",
 		Tenant:     "",
 		Status:     "delivered",
@@ -339,10 +377,13 @@ func TestMessages_DeleteStatus(t *testing.T) {
 	}
 
 	want := &Message{
-		Cursor:     "big-cursor",
-		ID:         "message-id",
-		ChannelID:  "5da042d7-02ee-46ed-8b91-9b5717da2028",
-		Recipient:  "tom",
+		Cursor:    "big-cursor",
+		ID:        "message-id",
+		ChannelID: "5da042d7-02ee-46ed-8b91-9b5717da2028",
+		Recipient: RecipientIdentifier{
+			Id:   "tom",
+			Type: RecipientTypeUser,
+		},
 		Workflow:   "test",
 		Tenant:     "",
 		Status:     "delivered",
@@ -397,9 +438,12 @@ func TestMessages_BatchSetStatus(t *testing.T) {
 		{
 			ID:        "29Gm3rDIQLyh0Bm8s0q7GrBSfk6",
 			ChannelID: "5da042d7-02ee-46ed-8b91-9b5717da2028",
-			Recipient: "tom",
-			Workflow:  "test",
-			Status:    "delivered",
+			Recipient: RecipientIdentifier{
+				Id:   "tom",
+				Type: RecipientTypeUser,
+			},
+			Workflow: "test",
+			Status:   "delivered",
 			Source: &NotificationSource{
 				Key:       "test",
 				VersionID: "4dae021a-ba51-473f-9038-77041da8131c",
@@ -411,9 +455,12 @@ func TestMessages_BatchSetStatus(t *testing.T) {
 		{
 			ID:        "29GmBDexT8qOXks4NcnPqs6CePd",
 			ChannelID: "5da042d7-02ee-46ed-8b91-9b5717da2028",
-			Recipient: "tom3",
-			Workflow:  "test",
-			Status:    "delivered",
+			Recipient: RecipientIdentifier{
+				Id:   "tom3",
+				Type: RecipientTypeUser,
+			},
+			Workflow: "test",
+			Status:   "delivered",
 			Source: &NotificationSource{
 				Key:       "test",
 				VersionID: "4dae021a-ba51-473f-9038-77041da8131c",

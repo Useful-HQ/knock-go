@@ -205,10 +205,13 @@ func TestUsers_GetMessages(t *testing.T) {
 
 	want := []*Message{
 		{
-			Cursor:     "big-cursor",
-			ID:         "29GmBF0R3ZG506vyc3H9mDa",
-			ChannelID:  "5da042d7-02ee-46ed-8b91-9b5717da2028",
-			Recipient:  "tom",
+			Cursor:    "big-cursor",
+			ID:        "29GmBF0R3ZG506vyc3H9mDa",
+			ChannelID: "5da042d7-02ee-46ed-8b91-9b5717da2028",
+			Recipient: RecipientIdentifier{
+				Id:   "tom",
+				Type: RecipientTypeUser,
+			},
 			Workflow:   "test",
 			Status:     "delivered",
 			InsertedAt: ParseRFC3339Timestamp("2022-05-17T00:34:18.277163Z"),

@@ -66,7 +66,7 @@ type Message struct {
 	Cursor     string                 `json:"__cursor"`
 	ID         string                 `json:"id"`
 	ChannelID  string                 `json:"channel_id"`
-	Recipient  string                 `json:"recipient"`
+	Recipient  RecipientIdentifier    `json:"recipient"`
 	Workflow   string                 `json:"workflow"`
 	Tenant     string                 `json:"tenant"`
 	Status     EngagementStatus       `json:"status"`
@@ -78,6 +78,19 @@ type Message struct {
 	Source     *NotificationSource    `json:"source"`
 	Data       map[string]interface{} `json:"data"`
 }
+
+type RecipientIdentifier struct {
+	Id         string `json:"id"`
+	Collection string `json:"collection"`
+	Type       RecipientType
+}
+
+type RecipientType string
+
+const (
+	RecipientTypeUser   RecipientType = "user"
+	RecipientTypeObject RecipientType = "object"
+)
 
 type NotificationSource struct {
 	Key       string `json:"key"`
@@ -392,4 +405,36 @@ func (ms *messagesService) BulkChangeChannelStatus(ctx context.Context, bulkStat
 	}
 
 	return batchSetStatusRes.BulkOperation, nil
+}
+
+func (r *RecipientIdentifier) UnmarshalJSON(data []byte) error {
+	// unmarshal into string to see if it's a user id
+	var recipientId string
+	err := json.Unmarshal(data, &recipientId)
+	if err == nil {
+		r.Id = recipientId
+		r.Type = RecipientTypeUser
+		return nil
+	}
+
+	// unmarshal into object to see if it's an object
+	var recipientIdentifier struct {
+		Id         string `json:"id"`
+		Collection string `json:"collection"`
+	}
+
+	objErr := json.Unmarshal(data, &recipientIdentifier)
+
+	if objErr != nil {
+		return fmt.Errorf(
+			"failed to unmarshal recipient identifier, data: %s, user unmarshal err: %s, object unmarshal err: %s",
+			string(data), err, objErr,
+		)
+	}
+
+	r.Id = recipientIdentifier.Id
+	r.Collection = recipientIdentifier.Collection
+	r.Type = RecipientTypeObject
+
+	return nil
 }
